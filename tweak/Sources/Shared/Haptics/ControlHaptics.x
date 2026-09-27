@@ -120,6 +120,28 @@ static void controlActed(UIControl *control, ControlKind kind, BOOL wasPaused) {
 }
 %end
 
+// The add button's tap is handled by Spotify's Encore object, separately from the UIButton action
+// that the haptics hook observes. Log only its object-valued ivars' class names to identify the save
+// model without exposing account, playlist or track data.
+%hook _TtC28EncoreConsumerMobile_BaseKitP33_23B9F07423DE1078C0EAAD54E8754BE611AddToButton
+- (void)performAction {
+    NSMutableArray<NSString *> *fields = [NSMutableArray array];
+    unsigned int count = 0;
+    Ivar *ivars = class_copyIvarList(object_getClass(self), &count);
+    for (unsigned int index = 0; index < count; index++) {
+        Ivar ivar = ivars[index];
+        const char *type = ivar_getTypeEncoding(ivar);
+        if (!type || type[0] != '@') continue;
+        id value = object_getIvar(self, ivar);
+        [fields addObject:[NSString stringWithFormat:@"%s=%@", ivar_getName(ivar), value ? NSStringFromClass([value class]) : @"nil"]];
+    }
+    free(ivars);
+    SGLog(@"player add: performAction began, fields [%@]", [fields componentsJoinedByString:@", "]);
+    %orig;
+    SGLog(@"player add: performAction returned");
+}
+%end
+
 #pragma mark - scrubbing
 
 static int sg_scrubTenth;
