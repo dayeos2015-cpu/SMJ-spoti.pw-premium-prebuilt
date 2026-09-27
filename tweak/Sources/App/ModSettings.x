@@ -88,6 +88,7 @@ static UIViewController *modSettingsPage(void) {
             pageRow(@"Labs", @"testtube.2", ^UIViewController *{ return SGLabsPage(); }),
         ]),
         SGSection(nil, @[
+            pageRow(@"Logs", @"doc.text.magnifyingglass", ^UIViewController *{ return SGLogViewerPage(); }),
             pageRow(@"All flags", @"flag", ^UIViewController *{ return SGAllFlagsPage(); }),
             mod,
         ]),

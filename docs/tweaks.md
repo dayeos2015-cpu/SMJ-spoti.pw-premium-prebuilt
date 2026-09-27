@@ -299,6 +299,9 @@ and Live Activity. The root page in `App/ModSettings.x` holds the Appearance car
     make log        # stream [spotifyglass] log lines from the phone
     make flags      # regenerate the flag table from the IPA
 
+Mod Settings > Logs shows the latest 256 KB of [spotifyglass] messages in the running app and can share them as a file.
+Clearing this in-app buffer does not erase iOS's unified device log.
+
 ## Mod Settings
 
 Mod Settings, opened by holding Home on the tab bar or from the first row of the side drawer and the

@@ -2,6 +2,8 @@
 // and logged when the app goes to the background.
 #import <Foundation/Foundation.h>
 
+@class UIViewController;
+
 BOOL SGIsDebugBuild(void);
 NSString *SGScreenTree(void);
 void SGDumpScreen(NSString *reason);
