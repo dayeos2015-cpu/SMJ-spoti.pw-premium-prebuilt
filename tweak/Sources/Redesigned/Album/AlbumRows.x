@@ -23,6 +23,7 @@ static const CGFloat kHairline = 0.5;
 
 static char kRowKey, kSubtitleKey, kLineKey, kAlbumHeaderKey, kAlbumParentKey, kAlbumArtistsKey;
 static char kOriginalSubtitleKey, kAppliedSubtitleKey;
+static char kExplicitStateKey;
 
 static NSString *normalizedArtist(NSString *artist) {
     NSString *trimmed = [artist stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];
@@ -78,6 +79,35 @@ static void applyArtistFilter(UILabel *label, NSSet<NSString *> *albumArtistName
     }
 }
 
+static BOOL explicitMarker(UIView *view) {
+    NSMutableArray<NSString *> *parts = [NSMutableArray arrayWithObject:NSStringFromClass(view.class) ?: @""];
+    if (view.accessibilityIdentifier.length) [parts addObject:view.accessibilityIdentifier];
+    if (view.accessibilityLabel.length) [parts addObject:view.accessibilityLabel];
+    NSString *identity = [[parts componentsJoinedByString:@" "] lowercaseString];
+    return [identity containsString:@"explicit"] || [identity containsString:@"contentrating"] || [identity containsString:@"content-rating"];
+}
+
+static void applyExplicitTagFilter(UIView *row, BOOL hide) {
+    SGForEachView(row, ^(UIView *view) {
+        if (!explicitMarker(view)) return;
+        NSArray<NSNumber *> *original = objc_getAssociatedObject(view, &kExplicitStateKey);
+        if (hide) {
+            if (!original) {
+                original = @[@(view.alpha), @(view.userInteractionEnabled), @(view.accessibilityElementsHidden)];
+                objc_setAssociatedObject(view, &kExplicitStateKey, original, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+            }
+            view.alpha = 0;
+            view.userInteractionEnabled = NO;
+            view.accessibilityElementsHidden = YES;
+        } else if (original) {
+            view.alpha = original[0].doubleValue;
+            view.userInteractionEnabled = original[1].boolValue;
+            view.accessibilityElementsHidden = original[2].boolValue;
+            objc_setAssociatedObject(view, &kExplicitStateKey, nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        }
+    });
+}
+
 static void clearSurface(UIView *view) {
     UIColor *color = view.backgroundColor;
     if (color && SGIsBaseSurface(color.CGColor)) view.backgroundColor = UIColor.clearColor;
@@ -114,6 +144,7 @@ static void applyRow(UIView *cell, UIView *page) {
         clearSurface(v);
         if (v == cell) break;
     }
+    applyExplicitTagFilter(row, SGHidden(SGRKeyHideExplicitAlbumTags));
 
     UIView *subtitle = SGRFindByIdentifier(row, @"EncoreConsumerMobile.View.Granular.Subtitle", &kSubtitleKey);
     BOOL hideAll = SGHidden(SGRKeyHideAllAlbumArtists);

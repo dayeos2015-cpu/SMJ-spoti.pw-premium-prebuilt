@@ -10,6 +10,7 @@ UIViewController *SGRAlbumSettingsPage(void) {
         SGNotedSection(@"Track list", @[
             SGSwitchRow(@"Hide album artists", @"Featured artists stay visible", SGRKeyHideAlbumArtists),
             SGSwitchRow(@"Hide all track artists", @"Including featured artists", SGRKeyHideAllAlbumArtists),
+            SGSwitchRow(@"Hide explicit tags", @"Next to track artists", SGRKeyHideExplicitAlbumTags),
         ], nil),
     ];
     return [[SGModPage alloc] initWithTitle:@"Albums" intro:nil sections:sections footer:nil];

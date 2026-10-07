@@ -76,6 +76,7 @@ static const NSTimeInterval kAloneOut = 0.6, kAloneBack = 0.3;
 static char kOverlayKey, kPlateKey, kTitleKey, kWatcherKey;
 static BOOL sg_open;
 static BOOL sg_moving;                      // the transition is in flight, so no layout pass may re-place it
+static BOOL sg_forceLandscapeLyrics;
 static BOOL sg_alone;                       // the controls are away and the lines have the player
 static BOOL sg_tapBroughtBack;              // the touch going on began with them away, so its tap seeks nowhere
 static NSTimer *sg_aloneTimer;
@@ -107,7 +108,7 @@ static BOOL landscapeLyricsEnabled(void);
 static const void *kOriginalOrientationKey;
 
 static BOOL landscapeLyricsEnabled(void) {
-    return SGRedesignedUI() && SGHidden(SGRKeyLandscapeLyrics) && sg_open && sg_player.viewIfLoaded.window;
+    return SGRedesignedUI() && (SGHidden(SGRKeyLandscapeLyrics) || sg_forceLandscapeLyrics) && sg_open && sg_player.viewIfLoaded.window;
 }
 
 static UIInterfaceOrientationMask orientationPolicy(id delegate, SEL command, UIApplication *application, UIWindow *window) {
@@ -157,6 +158,21 @@ void SGRPlayerLyricsOrientationChanged(void) {
             if (!enabled && UIInterfaceOrientationIsLandscape(orientation)) requestLandscapeGeometry(NO);
             else if (enabled && deviceLandscape && !UIInterfaceOrientationIsLandscape(orientation)) requestLandscapeGeometry(YES);
         }
+    });
+}
+
+void SGRPlayerForceLandscapeLyrics(void) {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if (!SGRedesignedUI() || !sg_player) return;
+        sg_forceLandscapeLyrics = YES;
+        if (!sg_open) setOpen(YES, NO);
+        if (!sg_open || !landscapeLyricsEnabled()) {
+            sg_forceLandscapeLyrics = NO;
+            return;
+        }
+        installOrientationPolicy(UIApplication.sharedApplication.delegate);
+        showLandscapeLyrics(sg_player);
+        requestLandscapeGeometry(YES);
     });
 }
 
@@ -820,6 +836,7 @@ static void setOpen(BOOL open, BOOL animated) {
     }
     // The controls come back first: the thumbnail flying back to the cover is one of them.
     if (!open) {
+        sg_forceLandscapeLyrics = NO;
         setAlone(NO, animated);
         stopAloneTimer();
         dismissLandscapeLyrics();
