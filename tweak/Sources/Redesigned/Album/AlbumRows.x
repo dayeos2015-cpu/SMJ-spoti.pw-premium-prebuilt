@@ -21,7 +21,62 @@
 // margin.
 static const CGFloat kHairline = 0.5;
 
-static char kRowKey, kSubtitleKey, kLineKey;
+static char kRowKey, kSubtitleKey, kLineKey, kAlbumHeaderKey, kAlbumParentKey, kAlbumArtistsKey;
+static char kOriginalSubtitleKey, kAppliedSubtitleKey;
+
+static NSString *normalizedArtist(NSString *artist) {
+    NSString *trimmed = [artist stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];
+    return [[trimmed lowercaseString] stringByFoldingWithOptions:NSDiacriticInsensitiveSearch locale:NSLocale.currentLocale];
+}
+
+static void addArtistNames(NSString *text, NSMutableSet<NSString *> *names) {
+    for (NSString *part in [text componentsSeparatedByString:@","]) {
+        NSString *name = normalizedArtist(part);
+        if (name.length) [names addObject:name];
+    }
+}
+
+static NSSet<NSString *> *albumArtists(UIView *page) {
+    NSSet<NSString *> *cached = objc_getAssociatedObject(page, &kAlbumArtistsKey);
+    if (cached) return cached;
+    UIView *header = SGRFindByIdentifier(page, @"CreativeWorkPlatform.Components.UI.CreativeWorkHeader", &kAlbumHeaderKey);
+    UIView *parent = SGRFindByIdentifier(header, @"CreativeWorkPlatform.Components.UI.ParentRow", &kAlbumParentKey);
+    NSMutableSet<NSString *> *names = [NSMutableSet set];
+    SGForEachView(parent, ^(UIView *view) {
+        if ([view isKindOfClass:UILabel.class]) addArtistNames(((UILabel *)view).text, names);
+    });
+    addArtistNames(parent.accessibilityLabel, names);
+    if (names.count) {
+        cached = [names copy];
+        objc_setAssociatedObject(page, &kAlbumArtistsKey, cached, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        return cached;
+    }
+    return names;
+}
+
+static void applyArtistFilter(UILabel *label, NSSet<NSString *> *albumArtistNames, BOOL hideAll) {
+    NSString *current = label.text ?: @"";
+    NSString *original = objc_getAssociatedObject(label, &kOriginalSubtitleKey);
+    NSString *applied = objc_getAssociatedObject(label, &kAppliedSubtitleKey);
+    if (!original || ![current isEqualToString:applied]) original = current;
+
+    NSMutableArray<NSString *> *visible = [NSMutableArray array];
+    if (!hideAll) {
+        for (NSString *part in [original componentsSeparatedByString:@","]) {
+            NSString *trimmed = [part stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];
+            if (trimmed.length && ![albumArtistNames containsObject:normalizedArtist(trimmed)]) [visible addObject:trimmed];
+        }
+    }
+    NSString *filtered = [visible componentsJoinedByString:@", "];
+    if (![filtered isEqualToString:current]) label.text = filtered;
+    if (![filtered isEqualToString:original]) {
+        objc_setAssociatedObject(label, &kOriginalSubtitleKey, original, OBJC_ASSOCIATION_COPY_NONATOMIC);
+        objc_setAssociatedObject(label, &kAppliedSubtitleKey, filtered, OBJC_ASSOCIATION_COPY_NONATOMIC);
+    } else {
+        objc_setAssociatedObject(label, &kOriginalSubtitleKey, nil, OBJC_ASSOCIATION_COPY_NONATOMIC);
+        objc_setAssociatedObject(label, &kAppliedSubtitleKey, nil, OBJC_ASSOCIATION_COPY_NONATOMIC);
+    }
+}
 
 static void clearSurface(UIView *view) {
     UIColor *color = view.backgroundColor;
@@ -61,9 +116,12 @@ static void applyRow(UIView *cell, UIView *page) {
     }
 
     UIView *subtitle = SGRFindByIdentifier(row, @"EncoreConsumerMobile.View.Granular.Subtitle", &kSubtitleKey);
+    BOOL hideAll = SGHidden(SGRKeyHideAllAlbumArtists);
+    NSSet<NSString *> *artistsToHide = SGHidden(SGRKeyHideAlbumArtists) ? albumArtists(page) : [NSSet set];
     SGForEachView(subtitle, ^(UIView *v) {
         if (![v isKindOfClass:UILabel.class]) return;
         UILabel *label = (UILabel *)v;
+        applyArtistFilter(label, artistsToHide, hideAll);
         if (![label.textColor isEqual:SGRSecondary()]) label.textColor = SGRSecondary();
     });
 

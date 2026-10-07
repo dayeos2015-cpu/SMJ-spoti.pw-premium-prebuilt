@@ -23,6 +23,8 @@
 
 // Apple Music's animated cover at the top of an album (AlbumHeader.x); on until switched off.
 #define SGRKeyAnimatedCovers @"spotifyglass.redesign.animatedcovers"
+#define SGRKeyHideAlbumArtists @"spotifyglass.redesign.hideAlbumArtists"
+#define SGRKeyHideAllAlbumArtists @"spotifyglass.redesign.hideAllAlbumArtists"
 
 UIViewController *SGRAlbumSettingsPage(void);
 
