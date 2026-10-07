@@ -90,6 +90,7 @@ static __weak UIView *sg_titleElement;      // the arranged element view holding
 static __weak SGRLandscapeLyricsController *sg_landscapeLyrics;
 static void showLandscapeLyrics(UIViewController *player);
 static void dismissLandscapeLyrics(void);
+static void setOpen(BOOL open, BOOL animated);
 static void installOrientationPolicy(id delegate);
 static BOOL landscapeLyricsEnabled(void);
 
