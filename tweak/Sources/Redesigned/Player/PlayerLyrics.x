@@ -929,11 +929,22 @@ static void replace(void) {
     sg_player = (UIViewController *)self;
     watchTouches(host);
     replace();
+    if (landscapeLyricsEnabled() && host.bounds.size.width > host.bounds.size.height) showLandscapeLyrics((UIViewController *)self);
+}
+
+- (void)viewWillTransitionToSize:(CGSize)size withTransitionCoordinator:(id<UIViewControllerTransitionCoordinator>)coordinator {
+    %orig;
+    BOOL landscape = size.width > size.height;
+    [coordinator animateAlongsideTransition:nil completion:^(id<UIViewControllerTransitionCoordinatorContext> context) {
+        if (landscape && landscapeLyricsEnabled()) showLandscapeLyrics((UIViewController *)self);
+        else if (!landscape) dismissLandscapeLyrics();
+    }];
 }
 
 // The bar morphs back out of a full size cover as the player closes, so the thumbnail is put away first.
 - (void)viewWillDisappear:(BOOL)animated {
-    if (sg_open) setOpen(NO, NO);
+    BOOL showingLandscape = sg_landscapeLyrics && landscapeLyricsEnabled();
+    if (sg_open && !showingLandscape) setOpen(NO, NO);
     %orig;
 }
 %end
@@ -945,22 +956,11 @@ static void replace(void) {
     sg_header = (UIViewController *)self;
     if (sg_alone) sg_header.viewIfLoaded.alpha = 0;
 }
-    if (landscapeLyricsEnabled() && host.bounds.size.width > host.bounds.size.height) showLandscapeLyrics((UIViewController *)self);
-}
-
-- (void)viewWillTransitionToSize:(CGSize)size withTransitionCoordinator:(id<UIViewControllerTransitionCoordinator>)coordinator {
-    %orig;
-    BOOL landscape = size.width > size.height;
-    [coordinator animateAlongsideTransition:nil completion:^(id<UIViewControllerTransitionCoordinatorContext> context) {
-        if (landscape && landscapeLyricsEnabled()) showLandscapeLyrics((UIViewController *)self);
-        else if (!landscape) dismissLandscapeLyrics();
-    }];
 %end
 
 %hook _TtC20NowPlaying_ModesImpl23InformationElementsUnit
 - (void)viewDidLayoutSubviews {
-    BOOL showingLandscape = sg_landscapeLyrics && landscapeLyricsEnabled();
-    if (sg_open && !showingLandscape) setOpen(NO, NO);
+    %orig;
     UIViewController *unit = (UIViewController *)self;
     sg_info = unit;
     UIView *host = unit.viewIfLoaded;
