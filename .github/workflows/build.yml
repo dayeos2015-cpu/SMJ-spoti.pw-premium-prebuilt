@@ -1,0 +1,32 @@
+name: Build Tweak
+
+on:
+  push:
+    branches: [ "crack", "main", "master" ]
+  pull_request:
+    branches: [ "crack", "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Theos
+        uses: theos/setup-theos-action@v1
+
+      - name: Build Package
+        run: |
+          cd tweak
+          make clean
+          make package FINALPACKAGE=1
+
+      - name: Upload DEB Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: spotifyglass-deb
+          path: tweak/packages/*.deb
