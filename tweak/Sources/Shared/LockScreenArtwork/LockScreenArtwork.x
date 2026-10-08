@@ -1,6 +1,7 @@
 // The track's Canvas or its album's Apple Music cover as the lock screen's animated artwork. The key
 // is put on every dictionary that goes out, so the lock screen lyrics' rewrites carry it too.
 #import <MediaPlayer/MediaPlayer.h>
+#import <objc/message.h>
 #import "Core/SGCore.h"
 #import "LockScreenArtwork.h"
 #import "SGAppleArtwork.h"
@@ -49,16 +50,26 @@ static UIImage *filled(UIImage *image, CGSize size) {
 }
 
 static id artworkFor(NSString *artworkID, NSURL *file, UIImage *still) {
-    if (@available(iOS 26.0, *)) {
-        return [[MPMediaItemAnimatedArtwork alloc] initWithArtworkID:artworkID
-            previewImageRequestHandler:^(CGSize size, void (^done)(UIImage *image)) {
+    Class animatedClass = NSClassFromString(@"MPMediaItemAnimatedArtwork");
+    if (animatedClass) {
+        id allocInstance = [animatedClass alloc];
+        SEL initSel = NSSelectorFromString(@"initWithArtworkID:previewImageRequestHandler:videoAssetFileURLRequestHandler:");
+        if ([allocInstance respondsToSelector:initSel]) {
+            typedef id (*InitAnimatedImp)(id, SEL, NSString *, id, id);
+            InitAnimatedImp initImp = (InitAnimatedImp)objc_msgSend;
+            
+            id previewHandler = ^(CGSize size, void (^done)(UIImage *image)) {
                 SGLog(@"lock artwork: still asked at %.0fx%.0f", size.width, size.height);
                 done(filled(still ?: coverImage(size), size));
-            }
-            videoAssetFileURLRequestHandler:^(CGSize size, void (^done)(NSURL *url)) {
+            };
+            
+            id videoHandler = ^(CGSize size, void (^done)(NSURL *url)) {
                 SGLog(@"lock artwork: clip asked at %.0fx%.0f", size.width, size.height);
                 done(file);
-            }];
+            };
+            
+            return initImp(allocInstance, initSel, artworkID, previewHandler, videoHandler);
+        }
     }
     return nil;
 }
