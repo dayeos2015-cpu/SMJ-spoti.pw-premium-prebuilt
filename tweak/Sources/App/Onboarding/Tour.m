@@ -1,6 +1,7 @@
 #import "Core/SGCore.h"
 #import "Settings/SGPageStyle.h"
 #import "Onboarding.h"
+#import <objc/message.h>
 #import "App/About/About.h"
 #import "App/Pages.h"
 #import "App/Donate/Donate.h"
@@ -27,9 +28,20 @@ static char kPaneKey;
 @end
 
 static UIButton *glassButton(NSString *title) {
-    UIButtonConfiguration *config;
-    if (@available(iOS 26.0, *)) config = [UIButtonConfiguration prominentGlassButtonConfiguration];
-    else config = [UIButtonConfiguration filledButtonConfiguration];
+    UIButtonConfiguration *config = nil;
+    
+    // Invocación dinámica de prominentGlassButtonConfiguration usando la runtime de Objective-C
+    if (NSClassFromString(@"UIButtonConfiguration") && [UIButtonConfiguration respondsToSelector:NSSelectorFromString(@"prominentGlassButtonConfiguration")]) {
+        typedef id (*ProminentGlassConfigImp)(id, SEL);
+        ProminentGlassConfigImp getImp = (ProminentGlassConfigImp)objc_msgSend;
+        config = getImp([UIButtonConfiguration class], NSSelectorFromString(@"prominentGlassButtonConfiguration"));
+    }
+    
+    // Fallback para versiones anteriores de iOS
+    if (!config) {
+        config = [UIButtonConfiguration filledButtonConfiguration];
+    }
+
     config.cornerStyle = UIButtonConfigurationCornerStyleCapsule;
     config.baseBackgroundColor = SGGreen();
     config.baseForegroundColor = UIColor.blackColor;
