@@ -1,5 +1,6 @@
 #import "SGGlass.h"
 #import "SGRuntime.h"
+#import <objc/message.h>
 
 // +effectWithStyle: is the only initialiser UIGlassEffect has; a bare -init leaves the material
 // unresolved and the pane renders as a plain blur, while the capsule shape, which is the view's
@@ -53,19 +54,27 @@ void SGShapeGlass(UIView *glass, CGFloat radius, BOOL capsule) {
     Class config = NSClassFromString(@"UICornerConfiguration");
     Class cornerRadius = NSClassFromString(@"UICornerRadius");
     id shape = nil;
+
     if (config && [glass respondsToSelector:@selector(setCornerConfiguration:)]) {
         if (capsule && [config respondsToSelector:@selector(capsuleConfiguration)]) {
-            shape = [config capsuleConfiguration];
-        } else if ([config respondsToSelector:@selector(configurationWithUniformRadius:)] && [cornerRadius respondsToSelector:@selector(fixedRadius:)]) {
-            shape = [config configurationWithUniformRadius:[cornerRadius fixedRadius:radius]];
+            shape = ((id (*)(id, SEL))objc_msgSend)(config, @selector(capsuleConfiguration));
+        } else if ([config respondsToSelector:@selector(configurationWithUniformRadius:)] &&
+                   [cornerRadius respondsToSelector:@selector(fixedRadius:)]) {
+            id fixed = ((id (*)(id, SEL, CGFloat))objc_msgSend)(cornerRadius, @selector(fixedRadius:), radius);
+            if (fixed) {
+                shape = ((id (*)(id, SEL, id))objc_msgSend)(config, @selector(configurationWithUniformRadius:), fixed);
+            }
         }
     }
+
     if (shape) {
-        [glass setCornerConfiguration:shape];
+        ((void (*)(id, SEL, id))objc_msgSend)(glass, @selector(setCornerConfiguration:), shape);
         glass.clipsToBounds = NO;
     } else {
-        glass.layer.cornerRadius = capsule ? glass.bounds.size.height / 2 : radius;
-        glass.layer.cornerCurve = kCACornerCurveContinuous;
+        glass.layer.cornerRadius = capsule ? glass.bounds.size.height / 2.0 : radius;
+        if (@available(iOS 13.0, *)) {
+            glass.layer.cornerCurve = kCACornerCurveContinuous;
+        }
         glass.clipsToBounds = YES;
     }
 }
