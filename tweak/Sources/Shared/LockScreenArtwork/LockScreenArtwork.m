@@ -26,7 +26,7 @@ void SGArtworkSetOrder(NSArray<NSString *> *order) {
 static NSString *SGMediaFrameworkProperty(NSString *propertyName) {
     void *handle = dlopen("/System/Library/Frameworks/MediaPlayer.framework/MediaPlayer", RTLD_LAZY);
     if (handle) {
-        NSString **propPtr = (NSString **)dlsym(handle, propertyName.UTF8String);
+        NSString * __unsafe_unretained *propPtr = (NSString * __unsafe_unretained *)dlsym(handle, propertyName.UTF8String);
         if (propPtr) {
             NSString *val = *propPtr;
             dlclose(handle);
