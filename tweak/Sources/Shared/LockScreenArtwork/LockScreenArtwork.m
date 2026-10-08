@@ -1,6 +1,8 @@
 // What the hook, the harness and the settings share: the order of the sources, which key this iOS
 // takes a clip under, and putting one there.
 #import <MediaPlayer/MediaPlayer.h>
+#import <objc/message.h>
+#import <dlfcn.h>
 #import "LockScreenArtwork.h"
 
 NSString *const SGArtworkSourceSpotify = @"spotify";
@@ -21,29 +23,49 @@ void SGArtworkSetOrder(NSArray<NSString *> *order) {
     [NSUserDefaults.standardUserDefaults setObject:order ?: @[] forKey:SGKeyLockScreenArtworkSources];
 }
 
+static NSString *SGMediaFrameworkProperty(NSString *propertyName) {
+    void *handle = dlopen("/System/Library/Frameworks/MediaPlayer.framework/MediaPlayer", RTLD_LAZY);
+    if (handle) {
+        NSString **propPtr = (NSString **)dlsym(handle, propertyName.UTF8String);
+        if (propPtr) {
+            NSString *val = *propPtr;
+            dlclose(handle);
+            return val;
+        }
+        dlclose(handle);
+    }
+    return nil;
+}
+
 BOOL SGAnimatedArtworkAvailable(void) {
-    if (@available(iOS 26.0, *)) return MPMediaItemAnimatedArtwork.class != nil;
-    return NO;
+    return NSClassFromString(@"MPMediaItemAnimatedArtwork") != nil;
 }
 
 NSArray<NSString *> *SGAnimatedArtworkKeys(void) {
-    if (@available(iOS 26.0, *)) return MPNowPlayingInfoCenter.supportedAnimatedArtworkKeys;
+    MPNowPlayingInfoCenter *center = [MPNowPlayingInfoCenter defaultCenter];
+    SEL sel = NSSelectorFromString(@"supportedAnimatedArtworkKeys");
+    if ([center respondsToSelector:sel]) {
+        return ((id (*)(id, SEL))objc_msgSend)(center, sel);
+    }
     return nil;
 }
 
 NSString *SGAnimatedArtworkKey(CGFloat *aspect) {
-    if (@available(iOS 26.0, *)) {
-        NSArray<NSString *> *supported = SGAnimatedArtworkKeys();
-        // A Canvas is taller than either shape, so the tall key loses the least of it.
-        if ([supported containsObject:MPNowPlayingInfoProperty3x4AnimatedArtwork]) {
-            if (aspect) *aspect = 3.0 / 4.0;
-            return MPNowPlayingInfoProperty3x4AnimatedArtwork;
-        }
-        if ([supported containsObject:MPNowPlayingInfoProperty1x1AnimatedArtwork]) {
-            if (aspect) *aspect = 1;
-            return MPNowPlayingInfoProperty1x1AnimatedArtwork;
-        }
+    NSArray<NSString *> *supported = SGAnimatedArtworkKeys();
+    if (!supported || supported.count == 0) return nil;
+
+    NSString *key3x4 = SGMediaFrameworkProperty(@"MPNowPlayingInfoProperty3x4AnimatedArtwork");
+    if (key3x4 && [supported containsObject:key3x4]) {
+        if (aspect) *aspect = 3.0 / 4.0;
+        return key3x4;
     }
+
+    NSString *key1x1 = SGMediaFrameworkProperty(@"MPNowPlayingInfoProperty1x1AnimatedArtwork");
+    if (key1x1 && [supported containsObject:key1x1]) {
+        if (aspect) *aspect = 1.0;
+        return key1x1;
+    }
+
     return nil;
 }
 
