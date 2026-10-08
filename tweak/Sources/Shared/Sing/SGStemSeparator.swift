@@ -58,7 +58,7 @@ actor SGStemSeparator {
         self.cpu = cpu
         self.dsp = try SGStemSpectralDSP()
         let accelerated = MLModelConfiguration()
-        accelerated.computeUnits = .cpuAndGPU
+        accelerated.computeUnits = .cpuAndNeuralEngine
         // Without the GPU copy the CPU one still does the work, only more slowly in the foreground.
         do { self.gpu = try await MLModel.load(contentsOf: modelURL, configuration: accelerated) }
         catch {
