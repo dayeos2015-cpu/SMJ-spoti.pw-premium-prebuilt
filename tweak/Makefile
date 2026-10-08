@@ -9,7 +9,7 @@ include $(THEOS)/makefiles/common.mk
 
 TWEAK_NAME := spotifyglass
 
-# Incluye todas las fuentes del proyecto
+# Busca dinámicamente todas las fuentes Objective-C, Logos y Swift
 spotifyglass_FILES := $(shell find Sources -type f \( -name '*.m' -o -name '*.x' -o -name '*.swift' \))
 spotifyglass_CFLAGS := -fobjc-arc -ISources -DSG_VERSION=\"$(SG_VERSION)\"
 spotifyglass_FRAMEWORKS := UIKit QuartzCore UniformTypeIdentifiers MediaPlayer CoreImage AudioToolbox AVFoundation CoreHaptics Accelerate Network CoreML
@@ -23,7 +23,7 @@ Sources/Shared/AudioEffects/SGDSPLiveprog.m_CFLAGS := -isystem $(SG_AUDIO)/wdl/e
 
 include $(THEOS_MAKE_PATH)/tweak.mk
 
-# Generación automática de la tabla de flags requerida por FlagsPage.m
+# Generación previa de la tabla de flags antes de compilar los archivos .m
 before-all::
 	@if [ -x ../scripts/extract-flags.sh ]; then ../scripts/extract-flags.sh; fi
 	@if [ -x ../scripts/check-layers.sh ]; then ../scripts/check-layers.sh Sources; fi
