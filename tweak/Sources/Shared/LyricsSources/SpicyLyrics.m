@@ -6,6 +6,7 @@
 // Its Developer Platform API returns the best sync from its catalogue and names the provider it
 // chose. The user supplies a publishable client key; it is kept in Keychain, never in preferences.
 #import "Core/SGCore.h"
+#import "Core/SGUI.h"
 #import "Settings/SGModPage.h"
 #import "LyricsSources.h"
 #import "Shared/Lyrics/Lyrics.h"
