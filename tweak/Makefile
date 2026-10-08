@@ -9,16 +9,7 @@ include $(THEOS)/makefiles/common.mk
 
 TWEAK_NAME := spotifyglass
 
-# Incluye Core (necesario para las utilidades de interfaz) y tus módulos seleccionados
-spotifyglass_FILES := $(shell find Sources/Core -name '*.m' -o -name '*.x' -o -name '*.swift' 2>/dev/null) \
-                      $(shell find Sources/Shared/Sing -name '*.m' -o -name '*.x' -o -name '*.swift' 2>/dev/null) \
-                      $(shell find Sources/Shared/LyricsSources -name '*.m' -o -name '*.x' -o -name '*.swift' 2>/dev/null) \
-                      $(shell find Sources/Shared/Player -name '*.m' -o -name '*.x' -o -name '*.swift' 2>/dev/null) \
-                      $(shell find Sources/Shared/LockScreenArtwork -name '*.m' -o -name '*.x' -o -name '*.swift' 2>/dev/null) \
-                      $(shell find Sources/Shared/LockScreenLyrics -name '*.m' -o -name '*.x' -o -name '*.swift' 2>/dev/null) \
-                      $(shell find Sources/Shared/Audio -name '*.m' -o -name '*.x' -o -name '*.swift' 2>/dev/null) \
-                      $(shell find Sources/Shared/AudioEffects -name '*.m' -o -name '*.x' -o -name '*.swift' 2>/dev/null)
-
+spotifyglass_FILES := $(shell find Sources -name '*.m' -o -name '*.x' -o -name '*.swift' | sort)
 spotifyglass_CFLAGS := -fobjc-arc -ISources -DSG_VERSION=\"$(SG_VERSION)\"
 spotifyglass_FRAMEWORKS := UIKit QuartzCore UniformTypeIdentifiers MediaPlayer CoreImage AudioToolbox AVFoundation CoreHaptics Accelerate Network CoreML
 
